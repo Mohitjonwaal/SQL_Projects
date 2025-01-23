@@ -28,10 +28,10 @@ This project is designed to analyze customer churn for Maven Telecom, identifyin
 
 ```sql
 -- Check for duplicate Customer IDs
-SELECT Customer_ID, COUNT(Customer_ID) as count
-FROM dbo.churn2
-GROUP BY Customer_ID
-HAVING count(Customer_ID) > 1;
+SELECT customer_id, count(customer_id)
+FROM customer_churn
+GROUP BY customer_id
+HAVING count(customer_id) > 1;
 ```
 
 ---
@@ -44,8 +44,8 @@ HAVING count(Customer_ID) > 1;
 
 ```sql
 -- Find total number of customers
-SELECT COUNT(DISTINCT Customer_ID) AS customer_count
-FROM dbo.churn2;
+SELECT COUNT( DISTINCT(customer_id)) AS NO_OF_CUSTOMERS
+FROM customer_churn;
 ```
 
 ---
@@ -58,11 +58,11 @@ Maven lost 1869 customers, accounting for 17% of total revenue.
 
 ```sql
 -- Calculate revenue lost to churned customers
-SELECT Customer_Status, 
-COUNT(Customer_ID) AS customer_count,
-ROUND((SUM(Total_Revenue) * 100.0) / SUM(SUM(Total_Revenue)) OVER(), 1) AS Revenue_Percentage 
-FROM dbo.churn2
-GROUP BY Customer_Status;
+SELECT customer_status, 
+COUNT(customer_id) AS no_of_customers,
+ROUND(SUM(total_revenue)*100/SUM(SUM(total_revenue)) OVER (), 1) AS revenue_percentage
+FROM customer_churn
+GROUP BY customer_status;
 ```
 
 #### b. Customer Tenure Analysis
@@ -71,24 +71,22 @@ GROUP BY Customer_Status;
 
 ```sql
 -- Tenure analysis for churned customers
-SELECT
-    CASE 
-        WHEN Tenure_in_Months <= 6 THEN '6 months'
-        WHEN Tenure_in_Months <= 12 THEN '1 Year'
-        WHEN Tenure_in_Months <= 24 THEN '2 Years'
-        ELSE '> 2 Years'
+SELECT 
+    CASE WHEN tenure_in_months <= 6 THEN '6 Months'
+    WHEN tenure_in_months <= 12 THEN '1 Year'
+    WHEN tenure_in_months <= 24 THEN '2 Year'
+    ELSE '> 2 Years'
     END AS Tenure,
-    ROUND(COUNT(Customer_ID) * 100.0 / SUM(COUNT(Customer_ID)) OVER(),1) AS Churn_Percentage
-FROM dbo.churn2
-WHERE Customer_Status = 'Churned'
-GROUP BY
-    CASE 
-        WHEN Tenure_in_Months <= 6 THEN '6 months'
-        WHEN Tenure_in_Months <= 12 THEN '1 Year'
-        WHEN Tenure_in_Months <= 24 THEN '2 Years'
-        ELSE '> 2 Years'
+ROUND(COUNT(customer_id)*100/SUM(COUNT(customer_id)) OVER(), 1) AS churn_percentage
+FROM customer_churn 
+WHERE customer_status = 'Churned'
+GROUP BY 
+        CASE WHEN tenure_in_months <= 6 THEN '6 Months'
+    WHEN tenure_in_months <= 12 THEN '1 Year'
+    WHEN tenure_in_months <= 24 THEN '2 Year'
+    ELSE '> 2 Years'
     END
-ORDER BY Churn_Percentage DESC;
+ORDER BY churn_percentage DESC;
 ```
 
 #### c. High Churn Cities
@@ -97,14 +95,43 @@ San Diego had the highest churn rate (65%).
 
 ```sql
 -- Identify cities with the highest churn rates
-SELECT TOP 4 City,
-    COUNT(Customer_ID) AS Churned,
-    CEILING(COUNT(CASE WHEN Customer_Status = 'Churned' THEN Customer_ID ELSE NULL END) * 100.0 / COUNT(Customer_ID)) AS Churn_Rate
-FROM dbo.churn2
-GROUP BY City
-HAVING COUNT(Customer_ID) > 30
-AND COUNT(CASE WHEN Customer_Status = 'Churned' THEN Customer_ID ELSE NULL END) > 0
-ORDER BY Churn_Rate DESC;
+SELECT 
+    city,
+    COUNT(customer_id) AS churned,
+    ceiling(COUNT(CASE WHEN customer_status = 'churned' THEN customer_id ELSE NULL END)*100/ COUNT(customer_id)) AS churn_rate
+FROM 
+    customer_churn
+GROUP BY city
+HAVING COUNT(customer_id)>30 AND 
+COUNT(CASE WHEN customer_status = 'churned' THEN customer_id ELSE NULL END) >0
+ORDER BY churn_rate DESC
+LIMIT 5;
+```
+
+#### d. General and Specific Reasons for Churn
+
+```sql
+-- General Reasons for Churn
+SELECT 
+    churn_category,
+    ROUND(SUM(total_revenue), 0) AS churned_revenue,
+    CEILING(COUNT(Customer_ID) / SUM(COUNT(Customer_ID)) OVER (PARTITION BY customer_status)*100) AS Churn_Percentage
+FROM 
+    customer_churn
+WHERE 
+    customer_status = 'Churned'
+GROUP BY churn_category
+ORDER BY churn_percentage DESC;
+
+-- Specific Reasons for Churn
+SELECT churn_Category, churn_reason,
+ROUND(COUNT(customer_id)/SUM(COUNT(customer_id)) OVER(PARTITION BY customer_status)*100,1) AS churn_percentage
+FROM customer_churn
+WHERE 
+    customer_status = 'churned'
+GROUP BY churn_category, churn_reason
+ORDER BY churn_percentage DESC
+LIMIT 5;
 ```
 
 ---
