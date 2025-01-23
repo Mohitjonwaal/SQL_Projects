@@ -366,7 +366,7 @@ risk_level, num_conditions;
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/telecom-churn-analysis.git
+   git clone [https://github.com/Mohitjonwaal/Telecome_Customer_Churn_Project.git]
    ```
 2. **Set Up the Database**: Import the dataset into your SQL environment and execute the provided SQL script.
 3. **Run Queries**: Execute the SQL queries included in the `customer_churn_analysis.sql` file to analyze the data.
