@@ -1,4 +1,3 @@
-# SQL_Projects
 # Customer Churn Analysis Project
 
 ## Project Overview
